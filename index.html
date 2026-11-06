@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ISW Shirt Sizes</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* Layout: sticky tally strip on top, entry form below, crew list at the bottom. */
+:root {
+  --bg: #f3f1ec;
+  --surface: #ffffff;
+  --ink: #1f2326;
+  --muted: #6a7075;
+  --line: #d9d5cb;
+  --accent: #d9560b;
+  --accent-ink: #ffffff;
+  --ok: #2f7d4f;
+  --font-display: "Barlow Condensed", "Arial Narrow", sans-serif;
+  --font-body: "Barlow", system-ui, sans-serif;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #16191b; --surface: #202427; --ink: #eceae4; --muted: #9aa1a6;
+    --line: #34393d; --accent: #f06a1e; --accent-ink: #16191b; --ok: #5fc08a;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #16191b; --surface: #202427; --ink: #eceae4; --muted: #9aa1a6;
+  --line: #34393d; --accent: #f06a1e; --accent-ink: #16191b; --ok: #5fc08a;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body { background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 17px; line-height: 1.4; }
+.wrap { max-width: 760px; margin: 0 auto; padding: 20px 16px 48px; display: flex; flex-direction: column; gap: 20px; }
+h1 { font-family: var(--font-display); font-weight: 700; font-size: 34px; letter-spacing: .02em; text-transform: uppercase; margin: 0; text-wrap: balance; }
+h2 { font-family: var(--font-display); font-weight: 600; font-size: 20px; letter-spacing: .06em; text-transform: uppercase; margin: 0; color: var(--muted); }
+.sub { margin: 4px 0 0; color: var(--muted); }
+
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 16px; display: flex; flex-direction: column; gap: 14px; }
+.panel-head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
+.total { font-family: var(--font-display); font-size: 20px; font-weight: 600; letter-spacing: .04em; }
+.total b { color: var(--accent); font-size: 28px; font-variant-numeric: tabular-nums; }
+
+.tally { display: grid; grid-template-columns: repeat(auto-fit, minmax(76px, 1fr)); gap: 8px; }
+.tile { border: 1px solid var(--line); border-radius: 6px; padding: 8px 6px; text-align: center; background: var(--bg); }
+.tile .lbl { font-family: var(--font-display); font-weight: 600; font-size: 16px; letter-spacing: .05em; color: var(--muted); }
+.tile .num { font-family: var(--font-display); font-weight: 700; font-size: 34px; line-height: 1.1; font-variant-numeric: tabular-nums; color: var(--muted); }
+.tile.has { border-color: var(--accent); }
+.tile.has .num { color: var(--accent); }
+.tile.has .lbl { color: var(--ink); }
+
+label.field { font-weight: 600; display: block; margin-bottom: 6px; }
+input[type="text"], input[type="password"] { width: 100%; font: inherit; padding: 12px; border: 1px solid var(--line); border-radius: 6px; background: var(--bg); color: var(--ink); }
+input[type="text"]:focus-visible, input[type="password"]:focus-visible, button:focus-visible, .size input:focus-visible + span { outline: 3px solid var(--accent); outline-offset: 2px; }
+
+.sizes { display: grid; grid-template-columns: repeat(auto-fit, minmax(84px, 1fr)); gap: 8px; border: 0; padding: 0; margin: 0; }
+.sizes legend { font-weight: 600; margin-bottom: 6px; padding: 0; }
+.size { position: relative; }
+.size input { position: absolute; opacity: 0; inset: 0; }
+.size span { display: flex; align-items: center; justify-content: center; min-height: 48px; border: 1px solid var(--line); border-radius: 6px; background: var(--bg); font-family: var(--font-display); font-weight: 600; font-size: 20px; letter-spacing: .04em; cursor: pointer; text-align: center; }
+.size input:checked + span { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.size.tall span { border-style: dashed; }
+.size.tall input:checked + span { border-style: solid; }
+
+button { font: inherit; cursor: pointer; }
+.primary { background: var(--accent); color: var(--accent-ink); border: 0; border-radius: 6px; padding: 14px; font-family: var(--font-display); font-weight: 700; font-size: 22px; letter-spacing: .06em; text-transform: uppercase; }
+.primary:disabled { opacity: .5; cursor: not-allowed; }
+.msg { min-height: 1.4em; margin: 0; font-weight: 500; }
+.msg.ok { color: var(--ok); }
+.msg.err { color: var(--accent); }
+
+.list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.list li { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-top: 1px solid var(--line); }
+.list li:first-child { border-top: 0; }
+.list .name { flex: 1; font-weight: 500; overflow-wrap: anywhere; }
+.list .sz { font-family: var(--font-display); font-weight: 700; font-size: 20px; letter-spacing: .04em; min-width: 72px; text-align: right; }
+.list .del { background: none; border: 1px solid var(--line); border-radius: 6px; color: var(--muted); padding: 6px 10px; }
+.list .del:hover { color: var(--accent); border-color: var(--accent); }
+.empty { color: var(--muted); margin: 0; }
+.row-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.ghost { background: none; border: 1px solid var(--line); border-radius: 6px; padding: 8px 12px; color: var(--ink); }
+.list .del { min-height: 44px; min-width: 44px; }
+.ghost { min-height: 44px; }
+.primary { min-height: 56px; }
+input[type="text"], input[type="password"] { min-height: 48px; font-size: 18px; }
+@media (max-width: 520px) {
+  body { font-size: 16px; }
+  .wrap { padding: 14px 12px 40px; gap: 14px; }
+  h1 { font-size: 28px; }
+  .panel { padding: 14px 12px; }
+  .tally { grid-template-columns: repeat(3, 1fr); }
+  .sizes { grid-template-columns: repeat(3, 1fr); }
+  .size span { min-height: 54px; font-size: 21px; }
+  .tile .num { font-size: 36px; }
+  .list li { gap: 8px; }
+  .list .sz { min-width: 64px; }
+  .ghost { width: 100%; }
+}
+.gate { max-width: 420px; margin: 12vh auto 0; }
+.gate .panel { gap: 12px; }
+[hidden] { display: none !important; }
+.linkbtn { background: none; border: 0; color: var(--muted); text-decoration: underline; padding: 8px 0; }
+@media (prefers-reduced-motion: no-preference) { .tile, .size span { transition: border-color .15s, background .15s; } }
+</style>
+</head>
+<body>
+<main class="gate" id="gate">
+  <div class="panel">
+    <h1>ISW Shirt Sizes</h1>
+    <form id="login" autocomplete="off">
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <label class="field" for="pw">Password</label>
+        <input type="password" id="pw" autocapitalize="off" autocorrect="off" spellcheck="false" enterkeyhint="go" autocomplete="off">
+        <button class="primary" type="submit" id="go">Open</button>
+        <p class="msg err" id="loginmsg" role="status"></p>
+      </div>
+    </form>
+  </div>
+</main>
+<main class="wrap" id="app" hidden>
+  <header>
+    <h1>ISW Shirt Sizes</h1>
+    <p class="sub">Type a name, pick a size, add. Do this once for each person on the crew.</p>
+  </header>
+
+  <section class="panel" aria-labelledby="tally-h">
+    <div class="panel-head">
+      <h2 id="tally-h">Shirts needed</h2>
+      <div class="total"><b id="total">0</b> total</div>
+    </div>
+    <div class="tally" id="tally"></div>
+    <div class="row-actions"><button class="ghost" id="copy" type="button">Copy order summary</button></div>
+  </section>
+
+  <section class="panel" aria-labelledby="add-h">
+    <h2 id="add-h">Add a person</h2>
+    <form id="form" autocomplete="off">
+      <div style="display:flex;flex-direction:column;gap:14px">
+        <div>
+          <label class="field" for="name">Name</label>
+          <input type="text" id="name" maxlength="60" placeholder="First and last name" autocapitalize="words" autocorrect="off" enterkeyhint="done" autocomplete="off">
+        </div>
+        <fieldset class="sizes" id="sizes"><legend>Size</legend></fieldset>
+        <button class="primary" id="add" type="submit">Add to list</button>
+        <p class="msg" id="msg" role="status"></p>
+      </div>
+    </form>
+  </section>
+
+  <section class="panel" aria-labelledby="crew-h">
+    <div class="panel-head">
+      <h2 id="crew-h">Crew list</h2>
+    </div>
+    <ul class="list" id="list"></ul>
+    <p class="empty" id="empty">Loading…</p>
+  </section>
+</main>
+
+<script>
+const SIZES = ["S","M","L","XL","2XL","3XL","3XL Tall","4XL","4XL Tall"];
+const $ = (id) => document.getElementById(id);
+let entries = [];
+const API = "https://xryzuuceswtpenzeimko.supabase.co/rest/v1/rpc/";
+const KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhyeXp1dWNlc3d0cGVuemVpbWtvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTM5NDY3NDYsImV4cCI6MjEwOTUyMjc0Nn0.p_rg8Lm2iGs3fHiAkLP-xiqMlqJkKIpUVAz-F9Z366A";
+const H = { apikey: KEY, Authorization: "Bearer " + KEY, "Content-Type": "application/json" };
+let loaded = false;
+let pw = "";
+let timer = null;
+
+function saved() { try { return sessionStorage.getItem("isw-pw") || ""; } catch (e) { return ""; } }
+function save(v) { try { v ? sessionStorage.setItem("isw-pw", v) : sessionStorage.removeItem("isw-pw"); } catch (e) {} }
+
+async function rpc(fn, body) {
+  const r = await fetch(API + fn, { method: "POST", headers: H, body: JSON.stringify({ p: pw, ...body }) });
+  if (!r.ok) {
+    let t = ""; try { t = await r.text(); } catch (e) {}
+    const err = new Error(t || String(r.status));
+    err.bad = /bad password/.test(t);
+    throw err;
+  }
+  const txt = await r.text();
+  return txt ? JSON.parse(txt) : null;
+}
+
+function lock(msg) {
+  pw = ""; save(""); loaded = false;
+  clearInterval(timer);
+  $("app").hidden = true; $("gate").hidden = false;
+  $("loginmsg").textContent = msg || "";
+  $("pw").value = "";
+}
+
+async function load() {
+  try {
+    entries = await rpc("shirt_list", {});
+    loaded = true;
+    render();
+  } catch (e) {
+    if (e.bad) { lock("Wrong password."); return; }
+    if (!loaded) $("empty").textContent = "Can't load the list. Check your connection and reload.";
+  }
+}
+
+function openApp() {
+  $("gate").hidden = true; $("app").hidden = false;
+  $("empty").textContent = "Loading…";
+  load();
+  timer = setInterval(load, 8000);
+}
+
+$("login").addEventListener("submit", async (ev) => {
+  ev.preventDefault();
+  const v = $("pw").value.trim();
+  if (!v) { $("loginmsg").textContent = "Enter the password."; return; }
+  $("go").disabled = true; $("loginmsg").textContent = "";
+  pw = v;
+  try {
+    entries = await rpc("shirt_list", {});
+    loaded = true; save(v); openApp(); render();
+  } catch (e) {
+    pw = "";
+    $("loginmsg").textContent = e.bad ? "Wrong password." : "Can't connect. Check your connection and try again.";
+  } finally { $("go").disabled = false; }
+});
+
+// Build size chips
+SIZES.forEach((s, i) => {
+  const tall = /Tall/.test(s);
+  const lab = document.createElement("label");
+  lab.className = "size" + (tall ? " tall" : "");
+  lab.innerHTML = '<input type="radio" name="size" id="size-' + i + '" value="' + s + '"><span>' + s + '</span>';
+  $("sizes").appendChild(lab);
+});
+
+function esc(t) { const d = document.createElement("div"); d.textContent = t; return d.innerHTML; }
+
+function render() {
+  const counts = Object.fromEntries(SIZES.map(s => [s, 0]));
+  entries.forEach(e => { if (e.size in counts) counts[e.size]++; });
+  $("total").textContent = entries.length;
+  $("tally").innerHTML = SIZES.map(s =>
+    '<div class="tile' + (counts[s] ? ' has' : '') + '"><div class="lbl">' + esc(s) + '</div><div class="num">' + counts[s] + '</div></div>'
+  ).join("");
+  const sorted = entries.slice().sort((a, b) => a.name.localeCompare(b.name));
+  $("list").innerHTML = sorted.map(e =>
+    '<li><span class="name">' + esc(e.name) + '</span><span class="sz">' + esc(e.size) + '</span>' +
+    '<button class="del" type="button" data-id="' + esc(e.id) + '" aria-label="Remove ' + esc(e.name) + '">Remove</button></li>'
+  ).join("");
+  $("empty").style.display = entries.length ? "none" : "block";
+  $("empty").textContent = "No one added yet.";
+}
+
+function setMsg(text, cls) { const m = $("msg"); m.textContent = text; m.className = "msg " + (cls || ""); }
+
+function readSnap(snap) {
+  const out = [];
+  const push = (id, data) => { if (data && data.name && data.size) out.push({ id, name: String(data.name), size: String(data.size) }); };
+  if (snap && snap.docs) snap.docs.forEach(d => push(d.id, typeof d.data === "function" ? d.data() : d.data));
+  else if (Array.isArray(snap)) snap.forEach(d => push(d.id, typeof d.data === "function" ? d.data() : (d.data || d)));
+  else if (snap && typeof snap.forEach === "function") snap.forEach(d => push(d.id, typeof d.data === "function" ? d.data() : d.data));
+  return out;
+}
+
+$("form").addEventListener("submit", async (ev) => {
+  ev.preventDefault();
+  const name = $("name").value.trim();
+  const picked = document.querySelector('input[name="size"]:checked');
+  if (!name) { setMsg("Enter a name first.", "err"); $("name").focus(); return; }
+  if (!picked) { setMsg("Pick a size for " + name + ".", "err"); return; }
+  $("add").disabled = true;
+  try {
+    await rpc("shirt_add", { n: name, s: picked.value });
+    await load();
+    setMsg("Added " + name + " (" + picked.value + ").", "ok");
+    $("name").value = "";
+    picked.checked = false;
+    $("name").focus();
+  } catch (e) {
+    if (e.bad) { lock("Wrong password."); return; }
+    setMsg("Couldn't save. Check your connection and try again.", "err");
+  } finally { $("add").disabled = false; }
+});
+
+$("list").addEventListener("click", async (ev) => {
+  const btn = ev.target.closest(".del");
+  if (!btn) return;
+  const e = entries.find(x => x.id === btn.dataset.id);
+  btn.disabled = true;
+  try {
+    await rpc("shirt_remove", { i: btn.dataset.id });
+    await load();
+    setMsg("Removed " + (e ? e.name : "entry") + ".", "ok");
+  }
+  catch (err) { if (err.bad) { lock("Wrong password."); return; } btn.disabled = false; setMsg("Couldn't remove that entry.", "err"); }
+});
+
+$("copy").addEventListener("click", async () => {
+  const counts = Object.fromEntries(SIZES.map(s => [s, 0]));
+  entries.forEach(e => { if (e.size in counts) counts[e.size]++; });
+  const text = SIZES.filter(s => counts[s]).map(s => s + ": " + counts[s]).join("\n") + "\nTotal: " + entries.length;
+  try { await navigator.clipboard.writeText(text); setMsg("Order summary copied.", "ok"); }
+  catch (e) { setMsg(text.replace(/\n/g, " | "), ""); }
+});
+
+render();
+document.addEventListener("visibilitychange", () => { if (!document.hidden && pw) load(); });
+const sp = saved();
+if (sp) { pw = sp; openApp(); } else { $("pw").focus(); }
+</script>
+</body>
+</html>

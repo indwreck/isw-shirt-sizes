@@ -167,8 +167,7 @@ input[type="text"], input[type="password"] { min-height: 48px; font-size: 18px; 
       <div class="total"><b id="total">0</b> total</div>
     </div>
     <div id="tally" class="styles"></div>
-    <div class="row-actions"><button class="ghost" id="copy" type="button">Copy order summary</button></div>
-    <textarea id="summarybox" readonly hidden rows="10" style="width:100%;font:inherit;padding:10px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--ink)"></textarea>
+    <div class="row-actions"><button class="ghost" id="copy" type="button">Create PDF</button></div>
   </section>
 
   <section class="panel" aria-labelledby="add-h">
@@ -198,6 +197,7 @@ input[type="text"], input[type="password"] { min-height: 48px; font-size: 18px; 
   </section>
 </main>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script>
 const SIZES = ["S","M","L","XL","2XL","3XL","3XL Tall","4XL","4XL Tall"];
 const $ = (id) => document.getElementById(id);
@@ -384,40 +384,88 @@ $("list").addEventListener("click", async (ev) => {
   }
 });
 
-$("copy").addEventListener("click", async () => {
-  const parts = STYLES.map(st => {
-    const sub = entries.filter(e => e.style === st).length;
-    const cols = COLORS.map(col => {
-      const n = entries.filter(e => e.style === st && e.color === col).length;
-      if (!n) return "";
-      const c = countsFor(st, col);
-      return col.toUpperCase() + " (" + n + ")\n" + SIZES.filter(z => c[z]).map(z => "  " + z + ": " + c[z]).join("\n");
-    }).filter(Boolean);
-    return (st === "Zip" ? "ZIP-UPS" : "PULLOVERS") + " (" + sub + ")\n" + (cols.length ? cols.join("\n") : "none");
-  });
-  const text = parts.join("\n\n") + "\n\nTotal: " + entries.length;
+$("copy").addEventListener("click", () => {
   const btn = $("copy");
-  let ok = false;
-  try { await navigator.clipboard.writeText(text); ok = true; } catch (e) {}
-  if (!ok) {
-    try {
-      const ta = document.createElement("textarea");
-      ta.value = text; ta.setAttribute("readonly", "");
-      ta.style.position = "fixed"; ta.style.opacity = "0";
-      document.body.appendChild(ta); ta.select(); ta.setSelectionRange(0, text.length);
-      ok = document.execCommand("copy");
-      document.body.removeChild(ta);
-    } catch (e) {}
+  const reset = () => setTimeout(() => { btn.textContent = "Create PDF"; }, 2500);
+  if (!window.jspdf) { btn.textContent = "PDF tool didn't load. Reload the page."; reset(); return; }
+  try {
+    const doc = new window.jspdf.jsPDF({ unit: "pt", format: "letter" });
+    const L = 48, R = 564, PAGE_H = 792;
+    let y = 56;
+    const need = (h) => { if (y + h > PAGE_H - 48) { doc.addPage(); y = 56; } };
+    const dateStr = new Date().toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" });
+
+    doc.setFont("helvetica", "bold"); doc.setFontSize(22);
+    doc.text("ISW Shirt Order", L, y); y += 22;
+    doc.setFont("helvetica", "normal"); doc.setFontSize(11);
+    doc.text("Industrial Salvage and Wrecking Co., Inc.  |  " + dateStr, L, y); y += 18;
+    doc.setFont("helvetica", "bold"); doc.setFontSize(13);
+    doc.text("Total shirts: " + entries.length, L, y); y += 14;
+    doc.setFont("helvetica", "normal"); doc.setFontSize(10);
+    doc.text("Job site employees order Orange.", L, y); y += 26;
+
+    STYLES.forEach(st => {
+      const sub = entries.filter(e => e.style === st).length;
+      need(60);
+      doc.setFont("helvetica", "bold"); doc.setFontSize(15);
+      doc.text((st === "Zip" ? "Zip-ups" : "Pullovers") + "  (" + sub + ")", L, y);
+      y += 6; doc.setLineWidth(1.5); doc.line(L, y, R, y); y += 18;
+      let any = false;
+      COLORS.forEach(col => {
+        const n = entries.filter(e => e.style === st && e.color === col).length;
+        if (!n) return;
+        any = true;
+        need(70);
+        const c = countsFor(st, col);
+        doc.setFont("helvetica", "bold"); doc.setFontSize(12);
+        doc.text(col + "  (" + n + ")", L, y); y += 8;
+        const cw = (R - L) / SIZES.length, rh = 22;
+        SIZES.forEach((z, i) => {
+          const x = L + i * cw;
+          doc.setLineWidth(0.6);
+          doc.rect(x, y, cw, rh); doc.rect(x, y + rh, cw, rh);
+          doc.setFont("helvetica", "bold"); doc.setFontSize(9);
+          doc.text(z, x + cw / 2, y + 14, { align: "center" });
+          doc.setFontSize(c[z] ? 13 : 11);
+          doc.setFont("helvetica", c[z] ? "bold" : "normal");
+          doc.text(String(c[z]), x + cw / 2, y + rh + 15, { align: "center" });
+        });
+        y += rh * 2 + 20;
+      });
+      if (!any) { doc.setFont("helvetica", "normal"); doc.setFontSize(11); doc.text("None", L, y); y += 22; }
+      y += 6;
+    });
+
+    need(60);
+    doc.setFont("helvetica", "bold"); doc.setFontSize(15);
+    doc.text("Crew list  (" + entries.length + ")", L, y);
+    y += 6; doc.setLineWidth(1.5); doc.line(L, y, R, y); y += 18;
+    const cols = [L, L + 210, L + 310, L + 400];
+    const header = () => {
+      doc.setFont("helvetica", "bold"); doc.setFontSize(10);
+      ["Name", "Style", "Color", "Size"].forEach((t, i) => doc.text(t, cols[i], y));
+      y += 5; doc.setLineWidth(0.6); doc.line(L, y, R, y); y += 14;
+    };
+    header();
+    const order = (v, arr) => arr.indexOf(v);
+    const sorted = entries.slice().sort((a, b) =>
+      order(a.style, STYLES) - order(b.style, STYLES) || order(a.color, COLORS) - order(b.color, COLORS) || a.name.localeCompare(b.name));
+    doc.setFont("helvetica", "normal"); doc.setFontSize(11);
+    sorted.forEach(e => {
+      if (y + 18 > PAGE_H - 48) { doc.addPage(); y = 56; header(); doc.setFont("helvetica", "normal"); doc.setFontSize(11); }
+      doc.text(String(e.name), cols[0], y, { maxWidth: 200 });
+      doc.text(e.style === "Zip" ? "Zip-up" : "Pullover", cols[1], y);
+      doc.text(e.color, cols[2], y);
+      doc.text(e.size, cols[3], y);
+      y += 18;
+    });
+
+    doc.save("ISW-Shirt-Order.pdf");
+    btn.textContent = "PDF created";
+  } catch (e) {
+    btn.textContent = "Couldn't create the PDF";
   }
-  const box = $("summarybox");
-  if (ok) {
-    box.hidden = true;
-    btn.textContent = "Copied";
-  } else {
-    box.hidden = false; box.value = text; box.focus(); box.select();
-    btn.textContent = "Select the text below and copy it";
-  }
-  setTimeout(() => { btn.textContent = "Copy order summary"; }, 2500);
+  reset();
 });
 
 render();

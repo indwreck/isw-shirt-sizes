@@ -116,6 +116,10 @@ input[type="text"], input[type="password"] { min-height: 48px; font-size: 18px; 
 .stylebtn input:checked + span { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
 .stylebtn input:focus-visible + span { outline: 3px solid var(--accent); outline-offset: 2px; }
 .list .st { font-family: var(--font-display); font-weight: 600; font-size: 16px; letter-spacing: .05em; text-transform: uppercase; color: var(--muted); min-width: 68px; }
+.list .ask { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+.list .ask .q { font-weight: 600; }
+.list .yes { background: var(--accent); color: var(--accent-ink); border: 1px solid var(--accent); border-radius: 6px; padding: 6px 12px; min-height: 44px; font-weight: 600; }
+.list .no { background: none; border: 1px solid var(--line); border-radius: 6px; padding: 6px 12px; min-height: 44px; color: var(--ink); }
 .gate { max-width: 420px; margin: 12vh auto 0; }
 .gate .panel { gap: 12px; }
 [hidden] { display: none !important; }
@@ -181,6 +185,7 @@ input[type="text"], input[type="password"] { min-height: 48px; font-size: 18px; 
 const SIZES = ["S","M","L","XL","2XL","3XL","3XL Tall","4XL","4XL Tall"];
 const $ = (id) => document.getElementById(id);
 let entries = [];
+let confirmId = null;
 const API = "https://xryzuuceswtpenzeimko.supabase.co/rest/v1/rpc/";
 const KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhyeXp1dWNlc3d0cGVuemVpbWtvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTM5NDY3NDYsImV4cCI6MjEwOTUyMjc0Nn0.p_rg8Lm2iGs3fHiAkLP-xiqMlqJkKIpUVAz-F9Z366A";
 const H = { apikey: KEY, Authorization: "Bearer " + KEY, "Content-Type": "application/json" };
@@ -282,7 +287,9 @@ function render() {
   const sorted = entries.slice().sort((a, b) => a.name.localeCompare(b.name));
   $("list").innerHTML = sorted.map(e =>
     '<li><span class="name">' + esc(e.name) + '</span><span class="st">' + esc(e.style === "Zip" ? "Zip-up" : "Pullover") + '</span><span class="sz">' + esc(e.size) + '</span>' +
-    '<button class="del" type="button" data-id="' + esc(e.id) + '" aria-label="Remove ' + esc(e.name) + '">Remove</button></li>'
+    (e.id === confirmId
+      ? '<span class="ask"><span class="q">Are you sure?</span><button class="yes" type="button" data-id="' + esc(e.id) + '">Yes, remove</button><button class="no" type="button">Cancel</button></span>'
+      : '<button class="del" type="button" data-id="' + esc(e.id) + '" aria-label="Remove ' + esc(e.name) + '">Remove</button>') + '</li>'
   ).join("");
   $("empty").style.display = entries.length ? "none" : "block";
   $("empty").textContent = "No one added yet.";
@@ -323,16 +330,24 @@ $("form").addEventListener("submit", async (ev) => {
 });
 
 $("list").addEventListener("click", async (ev) => {
-  const btn = ev.target.closest(".del");
-  if (!btn) return;
-  const e = entries.find(x => x.id === btn.dataset.id);
-  btn.disabled = true;
+  const del = ev.target.closest(".del");
+  if (del) { confirmId = del.dataset.id; render(); return; }
+  if (ev.target.closest(".no")) { confirmId = null; render(); return; }
+  const yes = ev.target.closest(".yes");
+  if (!yes) return;
+  const id = yes.dataset.id;
+  const e = entries.find(x => x.id === id);
+  yes.disabled = true;
   try {
-    await rpc("shirt_remove", { i: btn.dataset.id });
+    await rpc("shirt_remove", { i: id });
+    confirmId = null;
     await load();
     setMsg("Removed " + (e ? e.name : "entry") + ".", "ok");
+  } catch (err) {
+    if (err.bad) { lock("Wrong password."); return; }
+    yes.disabled = false;
+    setMsg("Couldn't remove that entry.", "err");
   }
-  catch (err) { if (err.bad) { lock("Wrong password."); return; } btn.disabled = false; setMsg("Couldn't remove that entry.", "err"); }
 });
 
 $("copy").addEventListener("click", async () => {

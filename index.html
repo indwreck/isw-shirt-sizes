@@ -100,7 +100,7 @@ input[type="text"], input[type="password"] { min-height: 48px; font-size: 18px; 
   .tile .num { font-size: 36px; }
   .list li { gap: 8px; }
   .list .sz { min-width: 56px; }
-  .list .st { min-width: 0; font-size: 14px; }
+  .list .st, .list .col { min-width: 0; font-size: 14px; }
   .ghost { width: 100%; }
 }
 .styles { display: flex; flex-direction: column; gap: 16px; }
@@ -120,6 +120,19 @@ input[type="text"], input[type="password"] { min-height: 48px; font-size: 18px; 
 .list .ask .q { font-weight: 600; }
 .list .yes { background: var(--accent); color: var(--accent-ink); border: 1px solid var(--accent); border-radius: 6px; padding: 6px 12px; min-height: 44px; font-weight: 600; }
 .list .no { background: none; border: 1px solid var(--line); border-radius: 6px; padding: 6px 12px; min-height: 44px; color: var(--ink); }
+.note { margin: 10px 0 0; padding: 10px 12px; border-left: 4px solid var(--accent); background: var(--bg); border-radius: 0 6px 6px 0; }
+.colorset { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; border: 0; padding: 0; margin: 0; }
+.colorset legend { font-weight: 600; margin-bottom: 6px; padding: 0; }
+.colorbtn { position: relative; }
+.colorbtn input { position: absolute; opacity: 0; inset: 0; }
+.colorbtn span { display: flex; align-items: center; justify-content: center; gap: 8px; min-height: 54px; border: 1px solid var(--line); border-radius: 6px; background: var(--bg); font-family: var(--font-display); font-weight: 700; font-size: 20px; letter-spacing: .05em; text-transform: uppercase; cursor: pointer; }
+.colorbtn i { width: 16px; height: 16px; border-radius: 50%; border: 1px solid var(--line); flex: none; }
+.colorbtn input:checked + span { border: 3px solid var(--accent); }
+.colorbtn input:focus-visible + span { outline: 3px solid var(--accent); outline-offset: 2px; }
+.colorhead { font-family: var(--font-display); font-weight: 600; font-size: 18px; letter-spacing: .05em; text-transform: uppercase; display: flex; align-items: center; gap: 8px; margin-top: 4px; }
+.colorhead i { width: 14px; height: 14px; border-radius: 50%; border: 1px solid var(--line); }
+.none { color: var(--muted); margin: 0; }
+.list .col { font-family: var(--font-display); font-weight: 600; font-size: 16px; letter-spacing: .05em; text-transform: uppercase; color: var(--muted); min-width: 56px; }
 .gate { max-width: 420px; margin: 12vh auto 0; }
 .gate .panel { gap: 12px; }
 [hidden] { display: none !important; }
@@ -144,7 +157,8 @@ input[type="text"], input[type="password"] { min-height: 48px; font-size: 18px; 
 <main class="wrap" id="app" hidden>
   <header>
     <h1>ISW Shirt Sizes</h1>
-    <p class="sub">Type a name, pick a size, add. Do this once for each person on the crew.</p>
+    <p class="sub">Type a name, pick a style, color and size, then add. Do this once for each person on the crew.</p>
+    <p class="note"><b>Job site employees must order Orange.</b> Pink and Black are for office staff only.</p>
   </header>
 
   <section class="panel" aria-labelledby="tally-h">
@@ -165,6 +179,8 @@ input[type="text"], input[type="password"] { min-height: 48px; font-size: 18px; 
           <input type="text" id="name" maxlength="60" placeholder="First and last name" autocapitalize="words" autocorrect="off" enterkeyhint="done" autocomplete="off">
         </div>
         <fieldset class="styleset" id="styles"><legend>Style</legend></fieldset>
+        <fieldset class="colorset" id="colors"><legend>Color</legend></fieldset>
+        <p class="note" style="margin:-6px 0 0"><b>Job site employees must order Orange.</b></p>
         <fieldset class="sizes" id="sizes"><legend>Size</legend></fieldset>
         <button class="primary" id="add" type="submit">Add to list</button>
         <p class="msg" id="msg" role="status"></p>
@@ -249,7 +265,15 @@ $("login").addEventListener("submit", async (ev) => {
   } finally { $("go").disabled = false; }
 });
 
+const COLORS = ["Orange", "Black", "Pink"];
+const SWATCH = { Orange: "#e8650a", Black: "#1b1b1b", Pink: "#ec7fae" };
 const STYLES = ["Zip", "Pullover"];
+COLORS.forEach((c, i) => {
+  const lab = document.createElement("label");
+  lab.className = "colorbtn";
+  lab.innerHTML = '<input type="radio" name="color" id="color-' + i + '" value="' + c + '"><span><i style="background:' + SWATCH[c] + '"></i>' + c + '</span>';
+  $("colors").appendChild(lab);
+});
 STYLES.forEach((st, i) => {
   const lab = document.createElement("label");
   lab.className = "stylebtn";
@@ -268,25 +292,31 @@ SIZES.forEach((s, i) => {
 
 function esc(t) { const d = document.createElement("div"); d.textContent = t; return d.innerHTML; }
 
-function countsFor(style) {
+function countsFor(style, color) {
   const c = Object.fromEntries(SIZES.map(z => [z, 0]));
-  entries.forEach(e => { if (e.style === style && e.size in c) c[e.size]++; });
+  entries.forEach(e => { if (e.style === style && e.color === color && e.size in c) c[e.size]++; });
   return c;
 }
 
 function render() {
   $("total").textContent = entries.length;
   $("tally").innerHTML = STYLES.map(st => {
-    const c = countsFor(st);
     const sub = entries.filter(e => e.style === st).length;
+    const groups = COLORS.map(col => {
+      const n = entries.filter(e => e.style === st && e.color === col).length;
+      if (!n) return "";
+      const c = countsFor(st, col);
+      return '<div class="colorhead"><i style="background:' + SWATCH[col] + '"></i>' + col + ' (' + n + ')</div>' +
+        '<div class="tally">' + SIZES.map(z =>
+          '<div class="tile' + (c[z] ? ' has' : '') + '"><div class="lbl">' + esc(z) + '</div><div class="num">' + c[z] + '</div></div>'
+        ).join("") + '</div>';
+    }).join("");
     return '<div class="stylegroup"><div class="stylehead"><h3>' + (st === "Zip" ? "Zip-ups" : "Pullovers") + '</h3><span>' + sub + ' total</span></div>' +
-      '<div class="tally">' + SIZES.map(z =>
-        '<div class="tile' + (c[z] ? ' has' : '') + '"><div class="lbl">' + esc(z) + '</div><div class="num">' + c[z] + '</div></div>'
-      ).join("") + '</div></div>';
+      (groups || '<p class="none">None yet.</p>') + '</div>';
   }).join("");
   const sorted = entries.slice().sort((a, b) => a.name.localeCompare(b.name));
   $("list").innerHTML = sorted.map(e =>
-    '<li><span class="name">' + esc(e.name) + '</span><span class="st">' + esc(e.style === "Zip" ? "Zip-up" : "Pullover") + '</span><span class="sz">' + esc(e.size) + '</span>' +
+    '<li><span class="name">' + esc(e.name) + '</span><span class="col">' + esc(e.color) + '</span><span class="st">' + esc(e.style === "Zip" ? "Zip-up" : "Pullover") + '</span><span class="sz">' + esc(e.size) + '</span>' +
     (e.id === confirmId
       ? '<span class="ask"><span class="q">Are you sure?</span><button class="yes" type="button" data-id="' + esc(e.id) + '">Yes, remove</button><button class="no" type="button">Cancel</button></span>'
       : '<button class="del" type="button" data-id="' + esc(e.id) + '" aria-label="Remove ' + esc(e.name) + '">Remove</button>') + '</li>'
@@ -311,17 +341,20 @@ $("form").addEventListener("submit", async (ev) => {
   const name = $("name").value.trim();
   const picked = document.querySelector('input[name="size"]:checked');
   const pickedStyle = document.querySelector('input[name="style"]:checked');
+  const pickedColor = document.querySelector('input[name="color"]:checked');
   if (!name) { setMsg("Enter a name first.", "err"); $("name").focus(); return; }
   if (!pickedStyle) { setMsg("Pick Zip-up or Pullover for " + name + ".", "err"); return; }
+  if (!pickedColor) { setMsg("Pick a color for " + name + ". Job site employees must order Orange.", "err"); return; }
   if (!picked) { setMsg("Pick a size for " + name + ".", "err"); return; }
   $("add").disabled = true;
   try {
-    await rpc("shirt_add", { n: name, s: picked.value, st: pickedStyle.value });
+    await rpc("shirt_add", { n: name, s: picked.value, st: pickedStyle.value, c: pickedColor.value });
     await load();
-    setMsg("Added " + name + " (" + (pickedStyle.value === "Zip" ? "Zip-up" : "Pullover") + ", " + picked.value + ").", "ok");
+    setMsg("Added " + name + " (" + (pickedStyle.value === "Zip" ? "Zip-up" : "Pullover") + ", " + pickedColor.value + ", " + picked.value + ").", "ok");
     $("name").value = "";
     picked.checked = false;
     pickedStyle.checked = false;
+    pickedColor.checked = false;
     $("name").focus();
   } catch (e) {
     if (e.bad) { lock("Wrong password."); return; }
@@ -352,10 +385,14 @@ $("list").addEventListener("click", async (ev) => {
 
 $("copy").addEventListener("click", async () => {
   const parts = STYLES.map(st => {
-    const c = countsFor(st);
-    const lines = SIZES.filter(z => c[z]).map(z => z + ": " + c[z]);
     const sub = entries.filter(e => e.style === st).length;
-    return (st === "Zip" ? "ZIP-UPS" : "PULLOVERS") + " (" + sub + ")\n" + (lines.length ? lines.join("\n") : "none");
+    const cols = COLORS.map(col => {
+      const n = entries.filter(e => e.style === st && e.color === col).length;
+      if (!n) return "";
+      const c = countsFor(st, col);
+      return col.toUpperCase() + " (" + n + ")\n" + SIZES.filter(z => c[z]).map(z => "  " + z + ": " + c[z]).join("\n");
+    }).filter(Boolean);
+    return (st === "Zip" ? "ZIP-UPS" : "PULLOVERS") + " (" + sub + ")\n" + (cols.length ? cols.join("\n") : "none");
   });
   const text = parts.join("\n\n") + "\n\nTotal: " + entries.length;
   try { await navigator.clipboard.writeText(text); setMsg("Order summary copied.", "ok"); }

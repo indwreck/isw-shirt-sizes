@@ -267,6 +267,7 @@ $("login").addEventListener("submit", async (ev) => {
 });
 
 const COLORS = ["Orange", "Black", "Pink"];
+const WRITING = { Orange: "Black", Black: "Blue", Pink: "Black" };
 const SWATCH = { Orange: "#e8650a", Black: "#1b1b1b", Pink: "#ec7fae" };
 const STYLES = ["Zip", "Pullover"];
 COLORS.forEach((c, i) => {
@@ -400,9 +401,12 @@ $("copy").addEventListener("click", () => {
     doc.setFont("helvetica", "normal"); doc.setFontSize(11);
     doc.text("Industrial Salvage and Wrecking Co., Inc.  |  " + dateStr, L, y); y += 18;
     doc.setFont("helvetica", "bold"); doc.setFontSize(13);
-    doc.text("Total shirts: " + entries.length, L, y); y += 14;
-    doc.setFont("helvetica", "normal"); doc.setFontSize(10);
-    doc.text("Job site employees order Orange.", L, y); y += 26;
+    doc.text("Total shirts: " + entries.length, L, y); y += 22;
+    doc.setFont("helvetica", "bold"); doc.setFontSize(11);
+    doc.text("Writing color on each shirt:", L, y); y += 15;
+    doc.setFont("helvetica", "normal"); doc.setFontSize(11);
+    COLORS.forEach(col => { doc.text(col + " shirts:  " + WRITING[col].toUpperCase() + " writing", L + 12, y); y += 14; });
+    y += 14;
 
     STYLES.forEach(st => {
       const sub = entries.filter(e => e.style === st).length;
@@ -418,7 +422,7 @@ $("copy").addEventListener("click", () => {
         need(70);
         const c = countsFor(st, col);
         doc.setFont("helvetica", "bold"); doc.setFontSize(12);
-        doc.text(col + "  (" + n + ")", L, y); y += 8;
+        doc.text(col + "  (" + n + ")   -   " + WRITING[col] + " writing", L, y); y += 8;
         const cw = (R - L) / SIZES.length, rh = 22;
         SIZES.forEach((z, i) => {
           const x = L + i * cw;
@@ -436,7 +440,13 @@ $("copy").addEventListener("click", () => {
       y += 6;
     });
 
-    need(60);
+    doc.addPage(); y = 56;
+    doc.setFont("helvetica", "bold"); doc.setFontSize(22);
+    doc.text("ISW Crew Shirt List", L, y); y += 22;
+    doc.setFont("helvetica", "normal"); doc.setFontSize(11);
+    doc.text("Internal copy for handing out  |  " + dateStr, L, y); y += 14;
+    doc.setFontSize(10);
+    doc.text("Job site employees order Orange.", L, y); y += 26;
     doc.setFont("helvetica", "bold"); doc.setFontSize(15);
     doc.text("Crew list  (" + entries.length + ")", L, y);
     y += 6; doc.setLineWidth(1.5); doc.line(L, y, R, y); y += 18;

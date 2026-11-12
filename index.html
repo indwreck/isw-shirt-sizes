@@ -394,6 +394,11 @@ $("copy").addEventListener("click", () => {
     const L = 48, R = 564, PAGE_H = 792;
     let y = 56;
     const need = (h) => { if (y + h > PAGE_H - 48) { doc.addPage(); y = 56; } };
+    // Long sleeve T-shirts: 3 per hoodie by size (Medium 1 per hoodie), each size rounded up to the next half dozen. Orange only, black writing.
+    const tc = Object.fromEntries(SIZES.map(z => [z, 0]));
+    entries.forEach(e => { if (e.size in tc) tc[e.size] += (e.size === "M" ? 1 : 3); });
+    SIZES.forEach(z => { tc[z] = tc[z] > 0 ? Math.ceil(tc[z] / 6) * 6 : 0; });
+    const tcTotal = SIZES.reduce((n, z) => n + tc[z], 0);
     const grid = (c) => {
       const cw = (R - L) / SIZES.length, rh = 20;
       SIZES.forEach((z, i) => {
@@ -415,7 +420,7 @@ $("copy").addEventListener("click", () => {
     doc.setFont("helvetica", "normal"); doc.setFontSize(11);
     doc.text("Industrial Salvage and Wrecking Co., Inc.  |  " + dateStr, L, y); y += 18;
     doc.setFont("helvetica", "bold"); doc.setFontSize(13);
-    doc.text("Hoodies: " + entries.length + "     Long sleeve T-shirts: " + (entries.length * 3), L, y); y += 22;
+    doc.text("Hoodies: " + entries.length + "     Long sleeve T-shirts: " + tcTotal, L, y); y += 22;
     doc.setFont("helvetica", "bold"); doc.setFontSize(11);
     doc.text("Writing color on each hoodie:", L, y); y += 15;
     doc.setFont("helvetica", "normal"); doc.setFontSize(11);
@@ -444,16 +449,12 @@ $("copy").addEventListener("click", () => {
       y += 4;
     });
 
-    // Long sleeve T-shirts: PER_SWEATER per hoodie ordered, counted by hoodie size across all orders; Orange only, black writing only
-    const PER_SWEATER = 3;
     need(110);
     doc.setFont("helvetica", "bold"); doc.setFontSize(15);
-    doc.text("Long Sleeve T-Shirts  (" + (entries.length * PER_SWEATER) + ")", L, y);
+    doc.text("Long Sleeve T-Shirts  (" + tcTotal + ")", L, y);
     y += 6; doc.setLineWidth(1.5); doc.line(L, y, R, y); y += 18;
     doc.setFont("helvetica", "bold"); doc.setFontSize(12);
     doc.text("Orange only   -   Black writing only", L, y); y += 8;
-    const tc = Object.fromEntries(SIZES.map(z => [z, 0]));
-    entries.forEach(e => { if (e.size in tc) tc[e.size] += PER_SWEATER; });
     grid(tc);
 
     doc.addPage(); y = 56;

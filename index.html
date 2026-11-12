@@ -163,7 +163,7 @@ input[type="text"], input[type="password"] { min-height: 48px; font-size: 18px; 
 
   <section class="panel" aria-labelledby="tally-h">
     <div class="panel-head">
-      <h2 id="tally-h">Shirts needed</h2>
+      <h2 id="tally-h">Hoodies needed</h2>
       <div class="total"><b id="total">0</b> total</div>
     </div>
     <div id="tally" class="styles"></div>
@@ -313,7 +313,7 @@ function render() {
           '<div class="tile' + (c[z] ? ' has' : '') + '"><div class="lbl">' + esc(z) + '</div><div class="num">' + c[z] + '</div></div>'
         ).join("") + '</div>';
     }).join("");
-    return '<div class="stylegroup"><div class="stylehead"><h3>' + (st === "Zip" ? "Zip-ups" : "Pullovers") + '</h3><span>' + sub + ' total</span></div>' +
+    return '<div class="stylegroup"><div class="stylehead"><h3>' + (st === "Zip" ? "Zip-up Hoodies" : "Pullover Hoodies") + '</h3><span>' + sub + ' total</span></div>' +
       (groups || '<p class="none">None yet.</p>') + '</div>';
   }).join("");
   const sorted = entries.slice().sort((a, b) => a.name.localeCompare(b.name));
@@ -411,22 +411,23 @@ $("copy").addEventListener("click", () => {
     const dateStr = new Date().toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" });
 
     doc.setFont("helvetica", "bold"); doc.setFontSize(22);
-    doc.text("ISW Shirt Order", L, y); y += 22;
+    doc.text("ISW Order Sheet", L, y); y += 22;
     doc.setFont("helvetica", "normal"); doc.setFontSize(11);
     doc.text("Industrial Salvage and Wrecking Co., Inc.  |  " + dateStr, L, y); y += 18;
     doc.setFont("helvetica", "bold"); doc.setFontSize(13);
-    doc.text("Total shirts: " + entries.length, L, y); y += 22;
+    doc.text("Hoodies: " + entries.length + "     Long sleeve T-shirts: " + (entries.length * 3), L, y); y += 22;
     doc.setFont("helvetica", "bold"); doc.setFontSize(11);
-    doc.text("Writing color on each shirt:", L, y); y += 15;
+    doc.text("Writing color on each hoodie:", L, y); y += 15;
     doc.setFont("helvetica", "normal"); doc.setFontSize(11);
-    COLORS.forEach(col => { doc.text(col + " shirts:  " + WRITING[col].toUpperCase() + " writing", L + 12, y); y += 14; });
+    COLORS.forEach(col => { doc.text(col + " hoodies:  " + WRITING[col].toUpperCase() + " writing", L + 12, y); y += 14; });
+    doc.text("Long sleeve T-shirts:  ORANGE only, BLACK writing", L + 12, y); y += 14;
     y += 14;
 
     STYLES.forEach(st => {
       const sub = entries.filter(e => e.style === st).length;
       need(60);
       doc.setFont("helvetica", "bold"); doc.setFontSize(15);
-      doc.text((st === "Zip" ? "Zip-ups" : "Pullovers") + "  (" + sub + ")", L, y);
+      doc.text((st === "Zip" ? "Zip-up Hoodies" : "Pullover Hoodies") + "  (" + sub + ")", L, y);
       y += 6; doc.setLineWidth(1.5); doc.line(L, y, R, y); y += 18;
       let any = false;
       COLORS.forEach(col => {
@@ -443,26 +444,25 @@ $("copy").addEventListener("click", () => {
       y += 4;
     });
 
-    // Long sleeve T-shirts: PER_SWEATER per sweater ordered, same size, Orange with black writing
+    // Long sleeve T-shirts: PER_SWEATER per hoodie ordered, counted by hoodie size across all orders; Orange only, black writing only
     const PER_SWEATER = 3;
     need(110);
     doc.setFont("helvetica", "bold"); doc.setFontSize(15);
     doc.text("Long Sleeve T-Shirts  (" + (entries.length * PER_SWEATER) + ")", L, y);
     y += 6; doc.setLineWidth(1.5); doc.line(L, y, R, y); y += 18;
     doc.setFont("helvetica", "bold"); doc.setFontSize(12);
-    doc.text("Orange   -   Black writing", L, y); y += 8;
+    doc.text("Orange only   -   Black writing only", L, y); y += 8;
     const tc = Object.fromEntries(SIZES.map(z => [z, 0]));
     entries.forEach(e => { if (e.size in tc) tc[e.size] += PER_SWEATER; });
     grid(tc);
 
     doc.addPage(); y = 56;
     doc.setFont("helvetica", "bold"); doc.setFontSize(22);
-    doc.text("ISW Crew Shirt List", L, y); y += 22;
+    doc.text("ISW Crew Hoodie List", L, y); y += 22;
     doc.setFont("helvetica", "normal"); doc.setFontSize(11);
     doc.text("Internal copy for handing out  |  " + dateStr, L, y); y += 14;
     doc.setFontSize(10);
-    doc.text("Job site employees order Orange.", L, y); y += 14;
-    doc.text("Each person also gets " + PER_SWEATER + " Orange long sleeve T-shirts in their sweater size.", L, y); y += 26;
+    doc.text("Job site employees order Orange.", L, y); y += 26;
     doc.setFont("helvetica", "bold"); doc.setFontSize(15);
     doc.text("Crew list  (" + entries.length + ")", L, y);
     y += 6; doc.setLineWidth(1.5); doc.line(L, y, R, y); y += 18;
@@ -486,7 +486,7 @@ $("copy").addEventListener("click", () => {
       y += 18;
     });
 
-    doc.save("ISW-Shirt-Order.pdf");
+    doc.save("ISW-Order-Sheet.pdf");
     btn.textContent = "PDF created";
   } catch (e) {
     btn.textContent = "Couldn't create the PDF";

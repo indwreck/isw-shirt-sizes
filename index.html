@@ -394,6 +394,20 @@ $("copy").addEventListener("click", () => {
     const L = 48, R = 564, PAGE_H = 792;
     let y = 56;
     const need = (h) => { if (y + h > PAGE_H - 48) { doc.addPage(); y = 56; } };
+    const grid = (c) => {
+      const cw = (R - L) / SIZES.length, rh = 20;
+      SIZES.forEach((z, i) => {
+        const x = L + i * cw;
+        doc.setLineWidth(0.6);
+        doc.rect(x, y, cw, rh); doc.rect(x, y + rh, cw, rh);
+        doc.setFont("helvetica", "bold"); doc.setFontSize(9);
+        doc.text(z, x + cw / 2, y + 13, { align: "center" });
+        doc.setFontSize(c[z] ? 13 : 11);
+        doc.setFont("helvetica", c[z] ? "bold" : "normal");
+        doc.text(String(c[z]), x + cw / 2, y + rh + 14, { align: "center" });
+      });
+      y += rh * 2 + 14;
+    };
     const dateStr = new Date().toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" });
 
     doc.setFont("helvetica", "bold"); doc.setFontSize(22);
@@ -423,22 +437,23 @@ $("copy").addEventListener("click", () => {
         const c = countsFor(st, col);
         doc.setFont("helvetica", "bold"); doc.setFontSize(12);
         doc.text(col + "  (" + n + ")   -   " + WRITING[col] + " writing", L, y); y += 8;
-        const cw = (R - L) / SIZES.length, rh = 22;
-        SIZES.forEach((z, i) => {
-          const x = L + i * cw;
-          doc.setLineWidth(0.6);
-          doc.rect(x, y, cw, rh); doc.rect(x, y + rh, cw, rh);
-          doc.setFont("helvetica", "bold"); doc.setFontSize(9);
-          doc.text(z, x + cw / 2, y + 14, { align: "center" });
-          doc.setFontSize(c[z] ? 13 : 11);
-          doc.setFont("helvetica", c[z] ? "bold" : "normal");
-          doc.text(String(c[z]), x + cw / 2, y + rh + 15, { align: "center" });
-        });
-        y += rh * 2 + 20;
+        grid(c);
       });
       if (!any) { doc.setFont("helvetica", "normal"); doc.setFontSize(11); doc.text("None", L, y); y += 22; }
-      y += 6;
+      y += 4;
     });
+
+    // Long sleeve T-shirts: PER_SWEATER per sweater ordered, same size, Orange with black writing
+    const PER_SWEATER = 3;
+    need(110);
+    doc.setFont("helvetica", "bold"); doc.setFontSize(15);
+    doc.text("Long Sleeve T-Shirts  (" + (entries.length * PER_SWEATER) + ")", L, y);
+    y += 6; doc.setLineWidth(1.5); doc.line(L, y, R, y); y += 18;
+    doc.setFont("helvetica", "bold"); doc.setFontSize(12);
+    doc.text("Orange   -   Black writing", L, y); y += 8;
+    const tc = Object.fromEntries(SIZES.map(z => [z, 0]));
+    entries.forEach(e => { if (e.size in tc) tc[e.size] += PER_SWEATER; });
+    grid(tc);
 
     doc.addPage(); y = 56;
     doc.setFont("helvetica", "bold"); doc.setFontSize(22);
@@ -446,7 +461,8 @@ $("copy").addEventListener("click", () => {
     doc.setFont("helvetica", "normal"); doc.setFontSize(11);
     doc.text("Internal copy for handing out  |  " + dateStr, L, y); y += 14;
     doc.setFontSize(10);
-    doc.text("Job site employees order Orange.", L, y); y += 26;
+    doc.text("Job site employees order Orange.", L, y); y += 14;
+    doc.text("Each person also gets " + PER_SWEATER + " Orange long sleeve T-shirts in their sweater size.", L, y); y += 26;
     doc.setFont("helvetica", "bold"); doc.setFontSize(15);
     doc.text("Crew list  (" + entries.length + ")", L, y);
     y += 6; doc.setLineWidth(1.5); doc.line(L, y, R, y); y += 18;
